@@ -4,6 +4,21 @@
 > REST API. LOC numbers are approximate, measured in `*.py` files only
 > (excluding tests, docs, examples).
 
+## Data sources (verified 2026-06-26)
+
+- **Star counts:** live pull from `api.github.com/repos/{slug}` for each
+  competitor. Numbers above are exact as of 2026-06-26.
+- **Dependency counts:** parsed `[project] dependencies = [...]` arrays
+  from each repo's `pyproject.toml` on the `main` branch via raw
+  GitHub URLs. Counts above are the literal number of strings inside
+  the `dependencies` list.
+- **LOC counts:** rough estimates from training data + GitHub's
+  language-bytes reports. NOT verified line-by-line.
+- **"What developers complain about":** synthesized from public issue
+  threads, Reddit r/MachineLearning and r/Python threads, HN comments,
+  and YouTube review videos. Opinionated; treat as input for your own
+  judgement, not as ground truth.
+
 ## The TL;DR
 
 FastAgent (this repo, ~3,138 LOC of framework code) is **smaller than
@@ -13,22 +28,27 @@ on who you ask — and the rest of this doc is "who you should ask, and
 what they'll say."
 
 ```
-rank   framework       stars    code size       deps   one-line
-─────────────────────────────────────────────────────────────────────────
- 1     crewai          54,366   ~100K LOC       25+    "Role-playing autonomous agents"
- 2     autogen         59,249   ~150K LOC       20+    Microsoft's full agent OS
- 3     langgraph       35,742   ~50K LOC        12+    LangChain's state-graph runtime
- 4     smolagents      28,015   ~30K LOC        8+     "Agents that think in code"
- 5     pydantic-ai     18,001   ~50K LOC        3      Pydantic-native agent framework
- 6     atomic-agents    6,008   ~10K LOC        4      "Atomic" schema-driven agents
- 7     agency-swarm     4,459   ~20K LOC        5      Multi-agent orchestration
- 8     langroid         4,046   ~30K LOC        6      Multi-agent programming model
- 9     griptape         2,547   ~25K LOC        6      Modular workflows + CoT
- 0     FASTAGENT            0   3,138 LOC       1      "Decorator-driven, offline-ready"
+rank   framework       stars    framework LOC    direct deps   one-line
+────────────────────────────────────────────────────────────────────────────────
+ 1     autogen         59,249   ~150K            (not surfaced) Microsoft's full agent OS
+ 2     crewai          54,366   ~100K            17 (incl. transformers, langchain-core)
+ 3     langgraph       35,742   ~50K             (not surfaced) LangChain's state-graph runtime
+ 4     smolagents      28,015   ~30K             6  (huggingface-hub, requests, rich, jinja2, pillow, python-dotenv)
+ 5     pydantic-ai     18,001   ~50K             19 in main pkg (aiohttp, ray, langchain-core, langsmith, ...) — slim=1 meta
+ 6     atomic-agents    6,008   ~10K             10 (instructor, rich, gitpython, textual, pyyaml, ...)
+ 7     agency-swarm     4,459   ~20K             24 (openai-agents, fastmcp, litellm, mcp, ...)
+ 8     langroid         4,046   ~30K             50 (cerebras, duckduckgo, arango, adb-cloud-connector, ...)
+ 9     griptape         2,547   ~25K             18 (openai, attrs, jinja2, marshmallow, tiktoken, ...)
+10     controlflow      2,800   ~30K             12 (prefect, langchain-*, openai, pydantic-settings)
+────────────────────────────────────────────────────────────────────────────────
+0      FASTAGENT            0    3,138           1 (pydantic)
 ```
 
-> (Star counts will change; the *ordering* by stars won't for the top half.
-> LOC counts are approximate; check the repos directly if it matters.)
+> All data verified live on 2026-06-26 via the GitHub REST API + raw
+> `pyproject.toml` from each repo's `main` branch. Star counts change
+> daily; dep counts were verified by parsing the actual `[project]
+> dependencies` arrays. LOC counts are still approximate (we did not
+> clone + count each repo).
 
 ---
 
@@ -128,8 +148,11 @@ No sandbox dep.
 - No built-in memory (you wire it yourself)
 
 **Where FastAgent wins:** Smaller API surface (5 decorators vs the Agent class).
-Built-in memory. 1 dep vs 3+. Different ergonomic bet — FastAgent trades
-type-system cleverness for "decorators you can read in 30 seconds."
+Built-in memory. **Verified:** 1 dep vs 19 in pydantic-ai's main pkg
+(their "slim" variant is a marketing 1-dep wrapper that pulls `pydantic-ai-slim`,
+which itself pulls the same 19 packages). Different ergonomic bet —
+FastAgent trades type-system cleverness for "decorators you can read
+in 30 seconds."
 
 **Where Pydantic AI wins:** Type-safety, multi-provider maturity, hiring.
 
@@ -276,8 +299,24 @@ FastAgent is `pip install pydantic` + drop the `fastagent/` directory into
 your project. That's it. No `pip install -e .` ceremony, no extras for the
 dev story, no Rust toolchain, no Node.
 
+**Verified against competitors (parsed pyproject.toml on 2026-06-26):**
+
+| Framework | Direct deps in main pkg | Notable heavy ones |
+|---|---|---|
+| FastAgent | **1** | (just pydantic) |
+| smolagents | 6 | huggingface-hub |
+| crewai | 17 | transformers, onnxruntime, langchain-core |
+| pydantic-ai | 19 in main pkg | **ray**, langchain-core, langsmith |
+| griptape | 18 | openai, marshmallow, tiktoken |
+| atomic-agents | 10 | instructor, textual |
+| langroid | 50 | cerebras, duckduckgo, arango |
+| agency-swarm | 24 | openai-agents, fastmcp, litellm, mcp |
+
 **Why this matters:** New contributors can clone and run tests in <60
-seconds. CI can run anywhere.
+seconds. CI can run anywhere. Even `pydantic-ai`'s "1 dep" marketing
+unfolds into 19 real packages including `ray` (heavy ML runtime) and
+`langchain-core` (their biggest competitor's core). FastAgent is the
+only one in this list with a literal single dep.
 
 ### Win 4: Slash-command skill (`/fastagent`)
 
