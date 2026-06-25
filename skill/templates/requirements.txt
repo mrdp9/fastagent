@@ -1,0 +1,8 @@
+# Required dependencies for FastAgent
+pydantic>=2.0
+# Optional but recommended: makes the vector index ~50x faster on large corpora.
+# numpy>=1.24
+# For real LLM providers, you do NOT need any extras - FastAgent uses urllib.
+# For running tests:
+pytest>=8.0
+pytest-asyncio>=0.23
